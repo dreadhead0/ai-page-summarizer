@@ -6,7 +6,6 @@
 # Build outputs
 build/
 PRSum-Safari/
-dist/
 
 # Xcode user data
 *.xcodeproj/project.xcworkspace/xcuserdata/

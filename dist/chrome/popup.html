@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Summarizer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <div class="container">
+
+  <div class="header">
+  <div class="title-group">
+    <img src="icons/icon32.png" class="logo" />
+    <h1 class="app-title">AI Summarizer</h1>
+  </div>
+
+  <button id="themeToggle" class="icon-btn">
+    <span id="themeIcon"></span>
+  </button>
+</div>
+
+  <div id="pageSpinner" class="page-spinner"></div>
+
+  <p id="pageTitle" class="page-title hidden"></p>
+
+ <div class="controls">
+  <button id="summarizeBtn" class="primary-btn">
+    Summarize Page
+  </button>
+
+ <div class="mode-toggle">
+  <button id="fullBtn" class="active">Full</button>
+  <button id="shortBtn">3 Bullets</button>
+</div>
+
+</div>
+  </div>
+
+  <div id="loading" class="hidden">
+  <div class="loading-dots">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+  <div id="result" class="result hidden">
+    <div class="meta">
+      <span id="readingTime"></span> • 
+      <span id="wordCount"></span>
+    </div>
+
+<div class="summary-wrapper">
+  <div id="summary" class="summary"></div>
+</div>
+
+    <div class="actions">
+      <button id="copyBtn">Copy</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <div id="error" class="error hidden"></div>
+
+</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
