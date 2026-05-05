@@ -3,7 +3,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
   (async () => {
     try {
-      // Basic validation
+  
       if (!req.content || req.content.length < 50) {
         sendResponse({
           success: false,
