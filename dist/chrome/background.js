@@ -5,24 +5,28 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     try {
       // Basic validation
       if (!req.content || req.content.length < 50) {
-        return sendResponse({
+        sendResponse({
           success: false,
           error: "Not enough content to summarize"
         });
+        return;
       }
 
-      const response = await fetch("http://localhost:3000/summarize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          title: req.title,
-          content: req.content,
-          url: req.url,
-          mode: req.mode   
-        })
-      });
+      const response = await fetch(
+        "https://ai-page-summarizer-production.up.railway.app/summarize",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            title: req.title,
+            content: req.content.slice(0, 3000),
+            url: req.url,
+            mode: req.mode
+          })
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Server error while summarizing");
@@ -42,10 +46,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
       sendResponse({
         success: false,
-        error: error.message || "Unexpected error occurred"
+        error: error.message || "Unexpected error"
       });
     }
   })();
 
-  return true; 
+  return true;
 });
