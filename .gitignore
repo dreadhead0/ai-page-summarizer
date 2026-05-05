@@ -18,3 +18,5 @@ DerivedData/
 # IDE/editor configs
 .idea/
 .vscode/
+
+node_modules

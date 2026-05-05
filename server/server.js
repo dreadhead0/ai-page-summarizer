@@ -56,7 +56,7 @@ if (isDuplicate(url)) {
 }
 
  try {
-    const { title, content, url } = req.body;
+    const { title, content, url, mode } = req.body;
 
     if (!content || content.length < 50) {
   return res.json({
@@ -78,6 +78,8 @@ if (isDuplicate(url)) {
     function countWords(text) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
+
+const cleanedContent = cleanPageText(content);
 
 const prompt = `
 You are a clean summarizer.
