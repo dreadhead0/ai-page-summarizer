@@ -35,159 +35,117 @@ function estimateReadingTime(text) {
 
 function isDuplicate(key) {
   const now = Date.now();
-
   if (recentRequests.has(key)) {
     const lastTime = recentRequests.get(key);
     if (now - lastTime < 5000) return true;
   }
-
   recentRequests.set(key, now);
   return false;
 }
 
 app.post("/summarize", async (req, res) => {
+  const { url, mode, content, title } = req.body;
 
-  const { url } = req.body;
+  // Keyed by URL + Mode so you can switch modes without hitting the 5s block
+  const requestKey = `${url}_${mode}`;
+  if (isDuplicate(requestKey)) {
+    return res.json({
+      summary: "Processing... (Rate limited within 5s)"
+    });
+  }
 
-if (isDuplicate(url)) {
-  return res.json({
-    summary: "Duplicate request blocked (cached within 5s)"
-  });
-}
-
- try {
-    const { title, content, url, mode } = req.body;
-
+  try {
     if (!content || content.length < 50) {
-  return res.json({
-    summary: "⚠️ Not enough content to summarize",
-    readingTime: "—",
-    source: "empty"
-  });
-}
+      return res.json({
+        success: true,
+        summary: "⚠️ Not enough content to summarize",
+        readingTime: "—",
+        source: "empty"
+      });
+    }
 
     function cleanPageText(text) {
-  return text
-    .replace(/\s+/g, " ")                // collapse spaces
-    .replace(/cookie|subscribe|sign up|advertisement/gi, "")
-    .replace(/[^a-zA-Z0-9.,!?•\s]/g, "") // remove junk symbols
-    .trim()
-    .slice(0, 2500);                    // HARD LIMIT (VERY IMPORTANT)
-}
+      return text
+        .replace(/\s+/g, " ")
+        .replace(/cookie|subscribe|sign up|advertisement/gi, "")
+        .replace(/[^a-zA-Z0-9.,!?•\s]/g, "")
+        .trim()
+        .slice(0, 2500); 
+    }
 
-    function countWords(text) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
+    const cleanedContent = cleanPageText(content);
 
-const cleanedContent = cleanPageText(content);
+    // --- ENFORCED MODE LOGIC ---
+    let modeInstruction = "";
+    if (mode === "short") {
+      modeInstruction = "Provide EXACTLY 3 short, punchy bullet points. Focus only on the absolute core message.";
+    } else {
+      modeInstruction = "Provide a DETAILED summary with 6 to 8 comprehensive bullet points. Include key facts, data, and nuances.";
+    }
 
-const prompt = `
-You are a clean summarizer.
+    const prompt = `
+You are a precision summarizer. 
+
+TASK: ${modeInstruction}
 
 RULES:
-- Use ONLY this format:
-• Point 1
-• Point 2
-• Point 3
-
-- NO asterisks (*)
-- NO plus signs (+)
-- NO headings like "Overview"
-- NO markdown (**)
-
-${req.body.mode === "short"
-  ? "- EXACTLY 3 bullet points"
-  : "- 5 to 7 clear bullet points"}
+- Use "•" as the bullet symbol.
+- Start each point on a new line.
+- NO bolding (**), NO headings, NO "Here is your summary" intro.
+- NO markdown characters other than the bullets.
 
 CONTENT:
 ${cleanedContent}
 `;
 
-const controller = new AbortController();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
 
-const timeout = setTimeout(() => {
-  controller.abort();
-}, 25000); // 25s safety buffer
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.1 // Forces the model to be more literal/strict
+        })
+      }
+    );
 
-const response = await fetch(
-  "https://api.groq.com/openai/v1/chat/completions",
-  {
-    method: "POST",
-    signal: controller.signal,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.3
-    })
-  }
-);
+    const data = await response.json();
+    clearTimeout(timeout);
 
-const data = await response.json();
+    if (!response.ok) {
+      const isQuota = data?.error?.code === 429;
+      return res.status(200).json({
+        success: true,
+        summary: isQuota ? "⚠️ AI quota reached." : "⚠️ AI request failed.",
+        readingTime: "—",
+        source: "api-error"
+      });
+    } 
 
-if (!response.ok) {
-  console.error("Groq API Error:", data);
-
-  const isQuota = data?.error?.code === 429;
-
-  return res.status(200).json({
-    summary: isQuota
-      ? "⚠️ AI quota reached. Try again soon."
-      : "⚠️ AI request failed. Please try again.",
-    readingTime: "—",
-    source: "api-error"
-  });
-} 
-console.log("✅ GROQ RESPONSE:", data);
-
-if (!data.choices || data.choices.length === 0) {
-  throw new Error("No choices returned from Groq");
-}
-
-const summary = data.choices[0]?.message?.content;
-
-if (!summary) {
-  throw new Error("No summary text returned");
-}
-
-   return res.json({
-  summary,
-  readingTime: estimateReadingTime(content),
-  wordCount: countWords(content),
-  source: "groq"
-});
-
-  } catch (err) {
-    console.error("🔥 GROQ ERROR:", err);
-
-    if (err.name === "AbortError") {
-  return res.json({
-    summary: "⚠️ Request took too long. Try again.",
-    readingTime: "—",
-    source: "timeout"
-  });
-}
-
-    const fallbackSummary = `
-- This page contains informational content.
-- AI summary is temporarily unavailable.
-- Key idea: ${req.body.title || "No title provided"}.
-- Try again later for full AI-generated insights.
-`;
+    const summary = data.choices[0]?.message?.content;
+    if (!summary) throw new Error("No summary text returned");
 
     return res.json({
-      summary: fallbackSummary,
-      readingTime: estimateReadingTime(req.body.content || ""),
-      source: "fallback",
-      error: err.message
+      success: true,
+      summary: summary.trim(),
+      readingTime: estimateReadingTime(content),
+      source: "groq"
+    });
+
+  } catch (err) {
+    console.error("🔥 ERROR:", err);
+    return res.json({
+      success: false,
+      error: err.message || "Server Error"
     });
   }
 });
