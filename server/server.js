@@ -57,7 +57,6 @@ app.get("/", (req, res) => {
 app.post("/summarize", async (req, res) => {
   const { url, mode, content, title } = req.body;
 
-  // Keyed by URL + Mode so you can switch modes without hitting the 5s block
   const requestKey = `${url}_${mode}`;
   if (isDuplicate(requestKey)) {
     return res.json({
@@ -86,7 +85,6 @@ app.post("/summarize", async (req, res) => {
 
     const cleanedContent = cleanPageText(content);
 
-    // --- ENFORCED MODE LOGIC ---
     let modeInstruction = "";
     if (mode === "short") {
       modeInstruction = "Provide EXACTLY 3 short, punchy bullet points. Focus only on the absolute core message.";
@@ -124,7 +122,7 @@ ${cleanedContent}
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.1 // Forces the model to be more literal/strict
+          temperature: 0.1 
         })
       }
     );
