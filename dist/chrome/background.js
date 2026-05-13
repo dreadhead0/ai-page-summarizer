@@ -13,7 +13,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       }
 
       const response = await fetch(
-        "https://ai-page-summarizer-production.up.railway.app/summarize",
+        "https://https://ai-page-summarizer-doy6.onrender.com/",
         {
           method: "POST",
           headers: {
