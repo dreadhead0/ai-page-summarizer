@@ -27,6 +27,10 @@ app.use(express.json({limit: "1mb" }));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+app.get("/", (req, res) => {
+  res.send("AI Page Summarizer backend is running...");
+});
+
 function estimateReadingTime(text) {
   const words = text.split(/\s+/).length;
   const minutes = Math.ceil(words / 200);
