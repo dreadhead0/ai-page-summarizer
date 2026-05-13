@@ -43,6 +43,13 @@ function isDuplicate(key) {
   return false;
 }
 
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "AI Summarizer backend is running"
+  });
+});
+
 app.post("/summarize", async (req, res) => {
   const { url, mode, content, title } = req.body;
 
