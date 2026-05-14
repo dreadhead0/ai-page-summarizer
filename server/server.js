@@ -108,7 +108,7 @@ ${cleanedContent}
 `;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",

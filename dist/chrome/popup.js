@@ -96,7 +96,7 @@ async function summarizePage() {
         showError("Request timed out");
         resetState();
       }
-    }, 25000);
+    }, 60000);
 
     chrome.runtime.sendMessage(
       {

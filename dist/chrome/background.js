@@ -3,7 +3,6 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
   (async () => {
     try {
-  
       if (!req.content || req.content.length < 50) {
         sendResponse({
           success: false,
@@ -11,6 +10,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         });
         return;
       }
+
+      console.log("Sending request to Render backend...");
+      console.log("Content length:", req.content.length);
+      console.log("Mode:", req.mode);
 
       const response = await fetch(
         "https://ai-page-summarizer-doy6.onrender.com/summarize",
@@ -28,11 +31,16 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         }
       );
 
+      const data = await response.json();
+      console.log("Backend response:", data);
+
       if (!response.ok) {
-        throw new Error("Server error while summarizing");
+        throw new Error(data.error || "Server error while summarizing");
       }
 
-      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "Backend failed to summarize");
+      }
 
       sendResponse({
         success: true,
